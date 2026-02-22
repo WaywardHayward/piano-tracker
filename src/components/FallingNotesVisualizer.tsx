@@ -304,7 +304,7 @@ export function FallingNotesVisualizer({ notes }: FallingNotesVisualizerProps) {
         <div className="status">
           {isListening && <Mic size={16} className="mic-indicator" />}
           {isListening && (
-            <span className="detected-inline">
+            <span style={{ color: 'lime', fontWeight: 'bold', fontSize: '1.5rem', marginLeft: '8px' }}>
               {currentPitch ? currentPitch.noteName : '---'}
             </span>
           )}
