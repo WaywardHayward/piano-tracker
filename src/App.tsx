@@ -1,4 +1,5 @@
 import { useMidi, midiToNoteName } from './hooks/useMidi';
+import { MidiFileLoader } from './components/MidiFileLoader';
 import './App.css';
 
 function App() {
@@ -62,10 +63,12 @@ function App() {
         </section>
       )}
 
+      <MidiFileLoader />
+
       <section className="roadmap">
         <h2>Coming Soon</h2>
         <ul>
-          <li>📄 Load MIDI files</li>
+          <li>✅ Load MIDI files</li>
           <li>🎵 Falling-note visualization</li>
           <li>✅ Note accuracy tracking</li>
           <li>📊 Practice session logging</li>
