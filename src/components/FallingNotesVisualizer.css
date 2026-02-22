@@ -144,3 +144,57 @@
     font-size: 0.8rem;
   }
 }
+
+/* Detected note display */
+.detected-note-display {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  font-size: 1.25rem;
+}
+
+.detected-label {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.detected-note {
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: #fff;
+  min-width: 3rem;
+  text-align: center;
+}
+
+.detected-note.correct {
+  color: #4ade80;
+  animation: pop 0.2s ease-out;
+}
+
+.detected-note.wrong {
+  color: #f87171;
+  animation: shake 0.3s ease-out;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.detected-waiting {
+  color: #888;
+  font-size: 0.9rem;
+}

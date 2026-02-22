@@ -310,6 +310,22 @@ export function FallingNotesVisualizer({ notes }: FallingNotesVisualizerProps) {
           )}
         </div>
       </div>
+
+      {/* Detected note display */}
+      {isListening && (
+        <div className="detected-note-display">
+          {currentPitch ? (
+            <>
+              <span className="detected-label">Heard:</span>
+              <span className={`detected-note ${lastCorrect === true ? 'correct' : lastCorrect === false ? 'wrong' : ''}`}>
+                {currentPitch.noteName}
+              </span>
+            </>
+          ) : (
+            <span className="detected-waiting">🎤 Listening...</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
