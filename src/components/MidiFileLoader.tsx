@@ -1,7 +1,8 @@
 import { useRef, type ChangeEvent, type DragEvent, useState } from 'react';
-import { FileMusic, Upload, Loader2 } from 'lucide-react';
+import { FileMusic, Upload, Loader2, Play } from 'lucide-react';
 import { useMidiFile, formatDuration } from '../hooks/useMidiFile';
 import { midiToNoteName } from '../hooks/useMidi';
+import { FallingNotesVisualizer } from './FallingNotesVisualizer';
 import './MidiFileLoader.css';
 
 /**
@@ -11,6 +12,7 @@ import './MidiFileLoader.css';
 export function MidiFileLoader() {
   const { midiFile, isLoading, error, loadFile, clear, stats } = useMidiFile();
   const [isDragging, setIsDragging] = useState(false);
+  const [isPracticing, setIsPracticing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -90,7 +92,26 @@ export function MidiFileLoader() {
               ))}
             </ul>
           </div>
-          <button className="clear-btn" onClick={clear}>Load Different File</button>
+          
+          <div className="action-buttons">
+            <button 
+              className="practice-btn" 
+              onClick={() => setIsPracticing(!isPracticing)}
+            >
+              <Play size={18} className="icon-inline" />
+              {isPracticing ? 'Hide Practice Mode' : 'Practice'}
+            </button>
+            <button className="clear-btn" onClick={() => { clear(); setIsPracticing(false); }}>
+              Load Different File
+            </button>
+          </div>
+
+          {isPracticing && midiFile.tracks.length > 0 && (
+            <FallingNotesVisualizer 
+              notes={midiFile.tracks.flatMap(t => t.notes)}
+              tempo={stats.bpm}
+            />
+          )}
         </div>
       </section>
     );

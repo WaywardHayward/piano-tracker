@@ -1,0 +1,146 @@
+.falling-notes-container {
+  position: relative;
+  width: 100%;
+  height: 60vh;
+  min-height: 300px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.falling-notes-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.visualizer-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-btn.play {
+  background: #4ade80;
+  color: #000;
+}
+
+.control-btn.play:hover {
+  background: #22c55e;
+}
+
+.control-btn.pause {
+  background: #fbbf24;
+  color: #000;
+}
+
+.control-btn.pause:hover {
+  background: #f59e0b;
+}
+
+.control-btn.reset {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.control-btn.reset:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+}
+
+.mic-indicator {
+  color: #4ade80;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.waiting-text {
+  font-weight: bold;
+  color: #fbbf24;
+}
+
+/* Landscape prompt */
+.landscape-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.rotate-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: wiggle 2s infinite;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+}
+
+.landscape-prompt p {
+  margin: 0.25rem 0;
+}
+
+.landscape-prompt .sub {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* Landscape-specific styles */
+@media (orientation: landscape) {
+  .falling-notes-container {
+    height: 70vh;
+  }
+}
+
+/* Mobile landscape */
+@media (max-height: 500px) and (orientation: landscape) {
+  .falling-notes-container {
+    height: 85vh;
+  }
+  
+  .visualizer-controls {
+    padding: 0.5rem;
+  }
+  
+  .control-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
