@@ -26,9 +26,9 @@ function App() {
           <AlertTriangle size={18} className="icon-inline" /> 
           {isIOS ? (
             <>
-              iOS Safari doesn't support MIDI input.
+              iOS browsers don't support MIDI input (Apple limitation).
               <br />
-              Use Chrome on desktop/Android for keyboard connection.
+              Use a desktop browser for keyboard connection.
               <br />
               You can still load and practice MIDI files here!
             </>
