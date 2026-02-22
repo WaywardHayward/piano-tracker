@@ -2,6 +2,7 @@ import { Music, AlertTriangle, Check, Sparkles, BarChart3, Flame, Bluetooth } fr
 import { useUnifiedMidi } from './hooks/useUnifiedMidi';
 import { midiToNoteName } from './hooks/useMidi';
 import { MidiFileLoader } from './components/MidiFileLoader';
+import { PitchDetector } from './components/PitchDetector';
 import './App.css';
 
 // iOS Safari doesn't support Web MIDI or Web Bluetooth
@@ -87,6 +88,15 @@ function App() {
           )}
         </section>
       )}
+
+      {/* Audio input - works on iOS and for acoustic pianos */}
+      <section className="devices">
+        <h2>🎤 Audio Input</h2>
+        <p className="muted" style={{ marginBottom: '0.5rem' }}>
+          {isIOS ? 'Use your microphone to detect notes!' : 'For acoustic pianos or as MIDI alternative'}
+        </p>
+        <PitchDetector />
+      </section>
 
       {activeDevice && (
         <section className="status connected">
