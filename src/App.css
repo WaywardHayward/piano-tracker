@@ -106,3 +106,12 @@ button:hover {
   padding: 0.5rem 0;
   color: #888;
 }
+
+.warning {
+  color: #f59e0b;
+  padding: 1rem;
+  background: #2d2a1f;
+  border-radius: 8px;
+  border: 1px solid #f59e0b33;
+  margin-bottom: 1rem;
+}
