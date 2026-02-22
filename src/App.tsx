@@ -4,13 +4,17 @@ import { midiToNoteName } from './hooks/useMidi';
 import { MidiFileLoader } from './components/MidiFileLoader';
 import './App.css';
 
+// iOS Safari doesn't support Web MIDI or Web Bluetooth
+const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
 function App() {
   const { 
     supported, devices, activeDevice, lastNote, 
     connect, disconnect, error, mode, requestBleMidi, hasBleMidi 
   } = useUnifiedMidi();
 
-  const showBleMidiButton = hasBleMidi && !activeDevice;
+  // Don't show BLE button on iOS - it doesn't support Web Bluetooth
+  const showBleMidiButton = hasBleMidi && !activeDevice && !isIOS;
   const isBleMidiMode = mode === 'ble-midi';
 
   return (
@@ -20,9 +24,21 @@ function App() {
       {!supported && (
         <p className="warning">
           <AlertTriangle size={18} className="icon-inline" /> 
-          MIDI not supported in this browser.
-          <br />
-          You can still load and view MIDI files.
+          {isIOS ? (
+            <>
+              iOS Safari doesn't support MIDI input.
+              <br />
+              Use Chrome on desktop/Android for keyboard connection.
+              <br />
+              You can still load and practice MIDI files here!
+            </>
+          ) : (
+            <>
+              MIDI not supported in this browser.
+              <br />
+              You can still load and view MIDI files.
+            </>
+          )}
         </p>
       )}
 
