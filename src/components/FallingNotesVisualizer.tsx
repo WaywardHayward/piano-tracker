@@ -303,6 +303,11 @@ export function FallingNotesVisualizer({ notes }: FallingNotesVisualizerProps) {
         
         <div className="status">
           {isListening && <Mic size={16} className="mic-indicator" />}
+          {isListening && (
+            <span className="detected-inline">
+              {currentPitch ? currentPitch.noteName : '---'}
+            </span>
+          )}
           {waitingForNote && (
             <span className="waiting-text">
               Play: {notes.find(n => n.midi === waitingForNote)?.name || '?'}

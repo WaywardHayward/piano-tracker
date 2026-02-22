@@ -203,3 +203,10 @@
 .detected-note.waiting {
   color: #666;
 }
+
+.detected-inline {
+  font-weight: bold;
+  font-size: 1.25rem;
+  color: #4ade80;
+  margin-left: 0.25rem;
+}
