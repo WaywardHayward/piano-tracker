@@ -1,10 +1,17 @@
-import { Music, AlertTriangle, Check, Sparkles, BarChart3, Flame } from 'lucide-react';
-import { useMidi, midiToNoteName } from './hooks/useMidi';
+import { Music, AlertTriangle, Check, Sparkles, BarChart3, Flame, Bluetooth } from 'lucide-react';
+import { useUnifiedMidi } from './hooks/useUnifiedMidi';
+import { midiToNoteName } from './hooks/useMidi';
 import { MidiFileLoader } from './components/MidiFileLoader';
 import './App.css';
 
 function App() {
-  const { supported, devices, activeDevice, lastNote, connect, disconnect, error } = useMidi();
+  const { 
+    supported, devices, activeDevice, lastNote, 
+    connect, disconnect, error, mode, requestBleMidi, hasBleMidi 
+  } = useUnifiedMidi();
+
+  const showBleMidiButton = hasBleMidi && !activeDevice;
+  const isBleMidiMode = mode === 'ble-midi';
 
   return (
     <div className="app">
@@ -12,9 +19,10 @@ function App() {
       
       {!supported && (
         <p className="warning">
-          <AlertTriangle size={18} className="icon-inline" /> MIDI keyboard input not supported in this browser (Safari/Firefox).
+          <AlertTriangle size={18} className="icon-inline" /> 
+          MIDI not supported in this browser.
           <br />
-          You can still load and view MIDI files. For keyboard input, use Chrome or Edge.
+          You can still load and view MIDI files.
         </p>
       )}
 
@@ -24,10 +32,29 @@ function App() {
 
       {supported && (
         <section className="devices">
-          <h2>MIDI Devices</h2>
-          {devices.length === 0 ? (
+          <h2>
+            MIDI Devices
+            {isBleMidiMode && <span className="mode-badge">Bluetooth</span>}
+          </h2>
+          
+          {showBleMidiButton && (
+            <button className="ble-connect-btn" onClick={requestBleMidi}>
+              <Bluetooth size={18} className="icon-inline" />
+              Connect Bluetooth MIDI
+            </button>
+          )}
+          
+          {devices.length === 0 && !showBleMidiButton && (
             <p className="muted">No MIDI devices found. Connect a keyboard and refresh.</p>
-          ) : (
+          )}
+          
+          {devices.length === 0 && showBleMidiButton && (
+            <p className="muted">
+              Click the button above to pair a Bluetooth MIDI keyboard.
+            </p>
+          )}
+          
+          {devices.length > 0 && (
             <ul>
               {devices.map((device) => (
                 <li key={device.id}>
@@ -46,8 +73,11 @@ function App() {
       )}
 
       {activeDevice && (
-        <section className="status">
-          <h2>Connected: {activeDevice.name}</h2>
+        <section className="status connected">
+          <h2>
+            <Check size={20} className="icon-inline icon-success" />
+            Connected: {activeDevice.name}
+          </h2>
           <p>Play some notes to test the connection!</p>
         </section>
       )}
