@@ -8,9 +8,19 @@ const BLE_MIDI_CHAR_UUID = '7772e5db-3868-4112-a1a9-f2669d106bf3';
 
 /**
  * Check if Web Bluetooth is available (Safari, Chrome, etc.)
+ * Also returns true on iOS Safari where we should try BLE MIDI
  */
 export function isBleMidiSupported(): boolean {
-  return typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+  if (typeof navigator === 'undefined') return false;
+  
+  // Direct check
+  if ('bluetooth' in navigator) return true;
+  
+  // iOS Safari detection - show button even if bluetooth not exposed yet
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  
+  return isIOS || isSafari;
 }
 
 /**
@@ -50,8 +60,9 @@ export function useBleMidi(): UseMidiResult & { requestDevice: () => Promise<voi
   }, []);
 
   const requestDevice = useCallback(async () => {
-    if (!isBleMidiSupported()) {
-      setError('Web Bluetooth not supported in this browser');
+    // Check for actual Web Bluetooth API
+    if (!('bluetooth' in navigator)) {
+      setError('Web Bluetooth not available. On iOS, ensure you\'re using Safari 15.4+ and have Bluetooth enabled.');
       return;
     }
     
