@@ -66,7 +66,7 @@ function detectPitch(buffer: Float32Array, sampleRate: number): { frequency: num
   }
   
   // Confidence threshold
-  if (bestCorrelation < 0.8 || bestPeriod === 0) {
+  if (bestCorrelation < 0.5 || bestPeriod === 0) {
     return null;
   }
   
@@ -100,7 +100,7 @@ export function usePitchDetection(): UsePitchDetectionResult {
     // Check if there's enough signal
     const rms = Math.sqrt(buffer.reduce((sum, x) => sum + x * x, 0) / bufferSize);
     
-    if (rms > 0.01) { // Minimum volume threshold
+    if (rms > 0.002) { // Lower threshold for quiet playing
       const result = detectPitch(buffer, audioContextRef.current.sampleRate);
       
       if (result) {
