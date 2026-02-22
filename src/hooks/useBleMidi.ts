@@ -11,14 +11,16 @@ const BLE_MIDI_CHAR_UUID = '7772e5db-3868-4112-a1a9-f2669d106bf3';
  * Also returns true on iOS Safari where we should try BLE MIDI
  */
 export function isBleMidiSupported(): boolean {
-  if (typeof navigator === 'undefined') return false;
+  if (typeof window === 'undefined') return false;
   
-  // Direct check
-  if ('bluetooth' in navigator) return true;
+  // Direct check for Web Bluetooth API
+  if ('bluetooth' in window.navigator) return true;
   
   // iOS Safari detection - show button even if bluetooth not exposed yet
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ua = (window.navigator as any).userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
   
   return isIOS || isSafari;
 }
