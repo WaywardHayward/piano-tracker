@@ -311,8 +311,8 @@ export function FallingNotesVisualizer({ notes }: FallingNotesVisualizerProps) {
         </div>
       </div>
 
-      {/* Detected note display - always show when playing */}
-      {isPlaying && (
+      {/* Detected note display - show when mic is on */}
+      {isListening && (
         <div className="detected-note-display">
           <span className="detected-label">Heard:</span>
           {currentPitch ? (
