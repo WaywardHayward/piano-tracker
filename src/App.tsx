@@ -1,3 +1,4 @@
+import { Music, AlertTriangle, Check, Sparkles, BarChart3, Flame } from 'lucide-react';
 import { useMidi, midiToNoteName } from './hooks/useMidi';
 import { MidiFileLoader } from './components/MidiFileLoader';
 import './App.css';
@@ -7,11 +8,11 @@ function App() {
 
   return (
     <div className="app">
-      <h1>🎹 Piano Tracker</h1>
+      <h1><Music size={32} className="icon-inline" /> Piano Tracker</h1>
       
       {!supported && (
         <p className="warning">
-          ⚠️ MIDI keyboard input not supported in this browser (Safari/Firefox).
+          <AlertTriangle size={18} className="icon-inline" /> MIDI keyboard input not supported in this browser (Safari/Firefox).
           <br />
           You can still load and view MIDI files. For keyboard input, use Chrome or Edge.
         </p>
@@ -65,11 +66,11 @@ function App() {
       <section className="roadmap">
         <h2>Coming Soon</h2>
         <ul>
-          <li>✅ Load MIDI files</li>
-          <li>🎵 Falling-note visualization</li>
-          <li>✅ Note accuracy tracking</li>
-          <li>📊 Practice session logging</li>
-          <li>🔥 Streaks and achievements</li>
+          <li><Check size={16} className="icon-inline icon-success" /> Load MIDI files</li>
+          <li><Sparkles size={16} className="icon-inline" /> Falling-note visualization</li>
+          <li><Check size={16} className="icon-inline icon-success" /> Note accuracy tracking</li>
+          <li><BarChart3 size={16} className="icon-inline" /> Practice session logging</li>
+          <li><Flame size={16} className="icon-inline" /> Streaks and achievements</li>
         </ul>
       </section>
     </div>

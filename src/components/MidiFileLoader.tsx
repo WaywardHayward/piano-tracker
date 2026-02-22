@@ -1,4 +1,5 @@
 import { useRef, type ChangeEvent, type DragEvent, useState } from 'react';
+import { FileMusic, Upload, Loader2 } from 'lucide-react';
 import { useMidiFile, formatDuration } from '../hooks/useMidiFile';
 import { midiToNoteName } from '../hooks/useMidi';
 import './MidiFileLoader.css';
@@ -36,8 +37,8 @@ export function MidiFileLoader() {
   if (isLoading) {
     return (
       <section className="midi-loader">
-        <h2>📄 MIDI File</h2>
-        <div className="loading">Loading MIDI file...</div>
+        <h2><FileMusic size={20} className="icon-inline" /> MIDI File</h2>
+        <div className="loading"><Loader2 size={20} className="spin" /> Loading MIDI file...</div>
       </section>
     );
   }
@@ -45,7 +46,7 @@ export function MidiFileLoader() {
   if (midiFile && stats) {
     return (
       <section className="midi-loader">
-        <h2>📄 MIDI File</h2>
+        <h2><FileMusic size={20} className="icon-inline" /> MIDI File</h2>
         <div className="midi-info">
           <h3>{midiFile.header.name}</h3>
           <div className="stats-grid">
@@ -97,7 +98,7 @@ export function MidiFileLoader() {
 
   return (
     <section className="midi-loader">
-      <h2>📄 MIDI File</h2>
+      <h2><FileMusic size={20} className="icon-inline" /> MIDI File</h2>
       {error && <p className="error">{error}</p>}
       <div
         className={`drop-zone ${isDragging ? 'dragging' : ''}`}
@@ -113,7 +114,7 @@ export function MidiFileLoader() {
           onChange={handleFileChange}
           hidden
         />
-        <p>🎵 Drop a MIDI file here or click to browse</p>
+        <p><Upload size={24} className="icon-inline" /> Drop a MIDI file here or click to browse</p>
       </div>
     </section>
   );
