@@ -1,0 +1,257 @@
+# Piano Tracker - Azure Deployment Pipeline
+# Uses OIDC for secure, credential-free Azure authentication
+
+name: Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'infra/**'
+      - '.github/workflows/azure-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  AZURE_LOCATION: 'uksouth'
+
+jobs:
+  # ============================================================================
+  # Build & Test
+  # ============================================================================
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: ${{ steps.publish.outputs.artifact-name }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Publish
+        id: publish
+        run: |
+          dotnet publish --configuration Release --output ./publish --no-build
+          echo "artifact-name=piano-tracker-${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.publish.outputs.artifact-name }}
+          path: ./publish
+          retention-days: 7
+
+  # ============================================================================
+  # Deploy Infrastructure (Dev)
+  # ============================================================================
+  deploy-infra-dev:
+    name: Deploy Infrastructure (Dev)
+    runs-on: ubuntu-latest
+    needs: build
+    environment: development
+    outputs:
+      app-name: ${{ steps.deploy.outputs.appServiceName }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create Resource Group
+        run: |
+          az group create \
+            --name piano-tracker-dev-rg \
+            --location ${{ env.AZURE_LOCATION }} \
+            --tags environment=dev project=piano-tracker owner=WaywardHayward
+
+      - name: Deploy Bicep
+        id: deploy
+        run: |
+          result=$(az deployment group create \
+            --resource-group piano-tracker-dev-rg \
+            --template-file infra/main.bicep \
+            --parameters infra/parameters/dev.bicepparam \
+            --query "properties.outputs" \
+            --output json)
+          
+          echo "appServiceName=$(echo $result | jq -r '.appServiceName.value')" >> $GITHUB_OUTPUT
+          echo "appServiceUrl=$(echo $result | jq -r '.appServiceUrl.value')" >> $GITHUB_OUTPUT
+
+      - name: Output deployment info
+        run: |
+          echo "### Dev Infrastructure Deployed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| App Service | ${{ steps.deploy.outputs.appServiceName }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ steps.deploy.outputs.appServiceUrl }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Deploy Application (Dev)
+  # ============================================================================
+  deploy-app-dev:
+    name: Deploy Application (Dev)
+    runs-on: ubuntu-latest
+    needs: [build, deploy-infra-dev]
+    environment:
+      name: development
+      url: https://piano-tracker-dev-app.azurewebsites.net
+    
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+          path: ./publish
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ needs.deploy-infra-dev.outputs.app-name }}
+          package: ./publish
+
+      - name: Health check
+        run: |
+          sleep 30
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://piano-tracker-dev-app.azurewebsites.net/health || echo "000")
+          if [ "$response" = "200" ]; then
+            echo "✅ Health check passed"
+          else
+            echo "⚠️ Health check returned: $response (app may still be starting)"
+          fi
+
+  # ============================================================================
+  # Deploy Infrastructure (Prod)
+  # ============================================================================
+  deploy-infra-prod:
+    name: Deploy Infrastructure (Prod)
+    runs-on: ubuntu-latest
+    needs: deploy-app-dev
+    environment: production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    outputs:
+      app-name: ${{ steps.deploy.outputs.appServiceName }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create Resource Group
+        run: |
+          az group create \
+            --name piano-tracker-prod-rg \
+            --location ${{ env.AZURE_LOCATION }} \
+            --tags environment=prod project=piano-tracker owner=WaywardHayward
+
+      - name: Deploy Bicep
+        id: deploy
+        run: |
+          result=$(az deployment group create \
+            --resource-group piano-tracker-prod-rg \
+            --template-file infra/main.bicep \
+            --parameters infra/parameters/prod.bicepparam \
+            --query "properties.outputs" \
+            --output json)
+          
+          echo "appServiceName=$(echo $result | jq -r '.appServiceName.value')" >> $GITHUB_OUTPUT
+          echo "appServiceUrl=$(echo $result | jq -r '.appServiceUrl.value')" >> $GITHUB_OUTPUT
+
+      - name: Output deployment info
+        run: |
+          echo "### Prod Infrastructure Deployed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| App Service | ${{ steps.deploy.outputs.appServiceName }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ steps.deploy.outputs.appServiceUrl }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Deploy Application (Prod)
+  # ============================================================================
+  deploy-app-prod:
+    name: Deploy Application (Prod)
+    runs-on: ubuntu-latest
+    needs: [build, deploy-infra-prod]
+    environment:
+      name: production
+      url: https://piano-tracker-prod-app.azurewebsites.net
+    
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+          path: ./publish
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ needs.deploy-infra-prod.outputs.app-name }}
+          package: ./publish
+
+      - name: Health check
+        run: |
+          sleep 30
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://piano-tracker-prod-app.azurewebsites.net/health || echo "000")
+          if [ "$response" = "200" ]; then
+            echo "✅ Health check passed"
+          else
+            echo "⚠️ Health check returned: $response (app may still be starting)"
+          fi
