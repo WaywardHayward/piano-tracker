@@ -1,107 +1,68 @@
-# Piano Tracker 🎹
+# 🎹 Piano Tracker
 
-**Strava for piano practice** - Track your progress, visualize music, and connect your MIDI keyboard.
+A web app for tracking your piano practice sessions with MIDI input and audio detection.
 
-## Vision
+## Architecture
 
-Learn any song, not just what's in someone else's catalog. Load MIDI files, connect your Bluetooth keyboard, and track your journey from first attempt to performance-ready.
+- **Backend**: .NET 9 Web API
+- **Frontend**: React 19 + TypeScript + Vite 7
+- **Structure**: Monorepo with SPA served from .NET in production
 
-## Core Features
-
-### 🎵 Music Visualization
-- Load MIDI files (standard format, widely available)
-- Falling-note display (Synthesia-style)
-- Sheet music view (stretch goal)
-- Piano keyboard visualization showing what to play
-
-### 🎹 MIDI Input
-- Connect Bluetooth MIDI keyboards via Web MIDI API
-- Real-time note detection
-- Visual feedback: right note (green), wrong note (red), missed (grey)
-
-### 📊 Practice Tracking (Strava-style)
-- Log practice sessions automatically
-- Track time spent per song
-- Accuracy percentage per session
-- Progress over time graphs
-- Streaks and achievements
-- "Performance ready" milestones (e.g., 95% accuracy at full speed)
-
-### 🎯 Practice Modes
-- Full playthrough
-- Section loop (practice tricky parts)
-- Slow down (50%, 75%, 100% speed)
-- Hands separate (left/right only)
-- Wait mode (waits for correct note)
-
-## Tech Stack
-
-- **Frontend:** React + TypeScript + Vite
-- **MIDI:** Web MIDI API (native browser support)
-- **Visualization:** Canvas or WebGL
-- **Audio:** Tone.js for playback
-- **Storage:** IndexedDB for local practice data
-- **Future:** Cloud sync, social features
-
-## Web MIDI API
-
-Good news: Bluetooth MIDI works in browsers!
-
-```typescript
-// Request MIDI access
-const midiAccess = await navigator.requestMIDIAccess();
-
-// Listen to all inputs
-midiAccess.inputs.forEach(input => {
-  input.onmidimessage = (event) => {
-    const [status, note, velocity] = event.data;
-    // Note on: status 144-159, Note off: status 128-143
-    if (status >= 144 && status <= 159 && velocity > 0) {
-      console.log(`Note ${note} pressed`);
-    }
-  };
-});
+```
+piano-tracker/
+├── src/
+│   └── PianoTracker.Api/
+│       ├── Controllers/         # API endpoints
+│       ├── Models/              # Domain models
+│       ├── ClientApp/           # React SPA
+│       │   ├── src/             # React components
+│       │   └── vite.config.ts   # Dev proxy → /api
+│       ├── Program.cs
+│       └── PianoTracker.Api.csproj
+└── PianoTracker.sln
 ```
 
-**Browser support:** Chrome, Edge, Opera (not Firefox/Safari yet)
+## Development
 
-## Getting Started
+### Prerequisites
+- .NET 9 SDK
+- Node.js 20+
 
+### Running locally
+
+**Backend** (port 5000):
 ```bash
+cd src/PianoTracker.Api
+dotnet run
+```
+
+**Frontend** (port 5173, proxies /api to backend):
+```bash
+cd src/PianoTracker.Api/ClientApp
 npm install
 npm run dev
 ```
 
-## Roadmap
+Then open http://localhost:5173
 
-### Phase 1: Core MVP
-- [ ] MIDI file loader
-- [ ] Basic falling-note visualization
-- [ ] Web MIDI keyboard connection
-- [ ] Note hit detection
-- [ ] Simple accuracy tracking
+### API
 
-### Phase 2: Practice Features
-- [ ] Speed control
-- [ ] Section looping
-- [ ] Hands separate mode
-- [ ] Session history
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/health` | Health check |
 
-### Phase 3: Strava Features
-- [ ] Practice calendar/heatmap
-- [ ] Progress graphs per song
-- [ ] Streaks
-- [ ] Achievements/badges
+## Features
 
-### Phase 4: Social (Future)
-- [ ] Cloud sync
-- [ ] Share progress
-- [ ] Compare with friends
+- 🎹 MIDI device connection (USB & Bluetooth)
+- 🎤 Audio input with pitch detection
+- 📄 MIDI file loading
+- 🎯 Note accuracy tracking
 
-## Why This Exists
+## Deployment
 
-Flowkey and similar apps lock you into their catalog. But MIDI files exist for virtually every song. This app lets you learn whatever you want, with modern practice tools and progress tracking.
+- **GitHub Pages**: Frontend-only demo (push to main)
+- **Full stack**: Use the published artifact from CI
 
----
+## License
 
-*Built with 🎹 by Alex*
+MIT
