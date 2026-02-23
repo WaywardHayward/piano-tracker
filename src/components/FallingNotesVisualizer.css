@@ -1,3 +1,7 @@
+/* ============================================
+   Falling Notes Visualizer - Guitar Hero Style
+   ============================================ */
+
 .falling-notes-container {
   position: relative;
   width: 100%;
@@ -6,6 +10,7 @@
   background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%);
   border-radius: 8px;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .falling-notes-canvas {
@@ -14,91 +19,139 @@
   display: block;
 }
 
-.visualizer-controls {
+/* ============================================
+   Side Controls Panel (Landscape)
+   ============================================ */
+
+.side-controls {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
-  right: 0;
+  bottom: 0;
+  width: 48px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+  justify-content: center;
+  gap: 12px;
+  padding: 8px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.85), transparent);
+  z-index: 10;
 }
 
+/* Shared button styles - Apple HIG compliant (44x44px min) */
 .control-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  padding: 0.5rem 1rem;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border: none;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.control-btn.play {
+.control-btn:active {
+  transform: scale(0.92);
+}
+
+/* Exit/minimize button */
+.exit-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  margin-bottom: auto;
+}
+
+.exit-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Play button */
+.play-btn {
   background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
   color: #000;
   box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
 }
 
-.control-btn.play:hover {
+.play-btn:hover {
   box-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
 }
 
-.control-btn.pause {
+/* Pause button */
+.pause-btn {
   background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%);
   color: #000;
   box-shadow: 0 0 20px rgba(255, 170, 0, 0.4);
 }
 
-.control-btn.reset {
-  background: rgba(255, 255, 255, 0.1);
+.pause-btn:hover {
+  box-shadow: 0 0 30px rgba(255, 170, 0, 0.6);
+}
+
+/* Reset button */
+.reset-btn {
+  background: rgba(255, 255, 255, 0.15);
   color: #fff;
-  padding: 0.5rem;
 }
 
-.control-btn.reset:hover {
-  background: rgba(255, 255, 255, 0.2);
+.reset-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.status {
-  margin-left: auto;
+/* Mic status indicator */
+.mic-status {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #fff;
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: auto;
+  transition: all 0.3s ease;
 }
 
-.mic-indicator {
+.mic-status.active {
+  background: rgba(0, 255, 136, 0.2);
   color: #00ff88;
-  animation: pulse 1.5s infinite;
+  animation: mic-pulse 1.5s infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+@keyframes mic-pulse {
+  0%, 100% { 
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4);
+  }
+  50% { 
+    opacity: 0.7;
+    box-shadow: 0 0 0 8px rgba(0, 255, 136, 0);
+  }
 }
 
-.detected-note {
+/* Minimal note indicator (top-right corner) */
+.note-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 1.4rem;
   font-weight: bold;
-  font-size: 1.1rem;
   color: #00d4ff;
-  text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+  z-index: 10;
+  pointer-events: none;
 }
 
-.waiting-text {
-  font-weight: 600;
-  color: #ffaa00;
-  text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
-}
+/* ============================================
+   Landscape Prompt (Portrait Mode)
+   ============================================ */
 
-/* Landscape prompt */
 .landscape-prompt {
   display: flex;
   flex-direction: column;
@@ -133,14 +186,20 @@
   color: #888;
 }
 
-/* Landscape fullscreen */
+/* ============================================
+   Landscape Mode - Desktop/Tablet
+   ============================================ */
+
 @media (orientation: landscape) {
   .falling-notes-container {
-    height: 70vh;
+    height: 75vh;
   }
 }
 
-/* Mobile landscape - fullscreen takeover */
+/* ============================================
+   Landscape Mode - Mobile (Guitar Hero Mode)
+   ============================================ */
+
 @media (orientation: landscape) and (max-height: 600px) {
   .falling-notes-container {
     position: fixed !important;
@@ -155,13 +214,70 @@
     border-radius: 0 !important;
     z-index: 9999 !important;
   }
-  
-  .visualizer-controls {
-    padding: 0.4rem 0.75rem;
+
+  /* Slightly wider side panel on mobile for better touch */
+  .side-controls {
+    width: 52px;
+    padding: 10px 6px;
+    gap: 14px;
   }
-  
+}
+
+/* ============================================
+   Fullscreen State
+   ============================================ */
+
+.falling-notes-container.is-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  z-index: 9999 !important;
+}
+
+/* Hide exit button when not in fullscreen */
+.falling-notes-container:not(.is-fullscreen) .exit-btn {
+  display: none;
+}
+
+/* ============================================
+   Accessibility & Touch Improvements
+   ============================================ */
+
+/* Ensure all interactive elements have proper focus states */
+.control-btn:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+/* Prevent text selection on controls */
+.side-controls {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Smooth transitions for orientation changes */
+@media (prefers-reduced-motion: no-preference) {
+  .falling-notes-container,
+  .side-controls,
   .control-btn {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.8rem;
+    transition: all 0.3s ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .falling-notes-container,
+  .side-controls,
+  .control-btn,
+  .mic-status,
+  .rotate-icon {
+    animation: none !important;
+    transition: none !important;
   }
 }

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Mic } from 'lucide-react';
+import { Play, Pause, RotateCcw, Mic, Minimize2 } from 'lucide-react';
 import { usePitchDetection } from '../hooks/usePitchDetection';
 import './FallingNotesVisualizer.css';
 
@@ -15,18 +15,34 @@ interface Props {
   tempo?: number;
 }
 
+const PIANO_HEIGHT = 50;
+const VISIBLE_TIME = 4;
+const PLAY_LINE_POSITION = 0.12;
+
+const NOTE_COLORS = {
+  default: '#00d4ff',
+  waiting: '#ffaa00',
+  correct: '#00ff88',
+  wrong: '#ff4466',
+  played: '#8855ff',
+};
+
 const isBlackKey = (midi: number): boolean => {
   const note = midi % 12;
   return [1, 3, 6, 8, 10].includes(note);
 };
 
-// Neon color palette
-const NOTE_COLORS = {
-  default: '#00d4ff',      // Cyan
-  waiting: '#ffaa00',      // Amber
-  correct: '#00ff88',      // Green
-  wrong: '#ff4466',        // Red
-  played: '#8855ff',       // Purple (already played)
+const notesMatch = (detected: number, expected: number): boolean => {
+  if (Math.abs(detected - expected) <= 1) return true;
+  if (detected % 12 === expected % 12) return true;
+  return false;
+};
+
+const triggerHaptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
+  if ('vibrate' in navigator) {
+    const durations = { light: 10, medium: 25, heavy: 50 };
+    navigator.vibrate(durations[type]);
+  }
 };
 
 export function FallingNotesVisualizer({ notes }: Props) {
@@ -42,33 +58,61 @@ export function FallingNotesVisualizer({ notes }: Props) {
   const [isLandscape, setIsLandscape] = useState(
     window.innerWidth > window.innerHeight
   );
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const { isListening, currentPitch, startListening, stopListening } = usePitchDetection();
 
   const minNote = Math.min(...notes.map(n => n.midi), 60) - 2;
   const maxNote = Math.max(...notes.map(n => n.midi), 72) + 2;
   const noteRange = maxNote - minNote + 1;
-  const visibleTime = 4;
-  const playLinePosition = 0.12;
-  const pianoHeight = 50;
 
+  // Handle orientation changes
   useEffect(() => {
     const handleResize = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight);
+      const nowLandscape = window.innerWidth > window.innerHeight;
+      setIsLandscape(nowLandscape);
+      
+      // Auto-enter fullscreen on landscape (mobile only)
+      if (nowLandscape && !isFullscreen && window.innerHeight < 600) {
+        enterFullscreen();
+      }
     };
+    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, [isFullscreen]);
+
+  // Handle fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Octave-tolerant note matching
-  const notesMatch = (detected: number, expected: number): boolean => {
-    // Same note = match
-    if (Math.abs(detected - expected) <= 1) return true;
-    // Octave equivalence (same note class)
-    if (detected % 12 === expected % 12) return true;
-    return false;
+  const enterFullscreen = async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } catch (err) {
+      console.warn('Fullscreen not supported:', err);
+    }
   };
 
+  const exitFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+      setIsFullscreen(false);
+    } catch (err) {
+      console.warn('Exit fullscreen failed:', err);
+    }
+  };
+
+  // Note detection logic
   useEffect(() => {
     if (!isPlaying || waitingForNote === null || !currentPitch) return;
     
@@ -76,9 +120,11 @@ export function FallingNotesVisualizer({ notes }: Props) {
       setLastCorrect(true);
       setPlayedNotes(prev => new Set([...prev, waitingForNote]));
       setWaitingForNote(null);
+      triggerHaptic('medium');
       setTimeout(() => setLastCorrect(null), 300);
     } else if (currentPitch.confidence > 0.6) {
       setLastCorrect(false);
+      triggerHaptic('light');
       setTimeout(() => setLastCorrect(null), 150);
     }
   }, [currentPitch, waitingForNote, isPlaying]);
@@ -90,8 +136,8 @@ export function FallingNotesVisualizer({ notes }: Props) {
 
     const width = canvas.width;
     const height = canvas.height;
-    const playableHeight = height - pianoHeight;
-    const playLineY = playableHeight * (1 - playLinePosition);
+    const playableHeight = height - PIANO_HEIGHT;
+    const playLineY = playableHeight * (1 - PLAY_LINE_POSITION);
     const keyWidth = width / noteRange;
 
     // Dark gradient background
@@ -101,7 +147,7 @@ export function FallingNotesVisualizer({ notes }: Props) {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, width, height);
 
-    // Subtle vertical lines (piano lane guides)
+    // Vertical lane guides
     for (let i = 0; i < noteRange; i++) {
       const midi = minNote + i;
       const x = i * keyWidth;
@@ -129,8 +175,8 @@ export function FallingNotesVisualizer({ notes }: Props) {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Draw falling notes with glow
-    const pixelsPerSecond = (playableHeight * (1 - playLinePosition)) / visibleTime;
+    // Draw falling notes
+    const pixelsPerSecond = (playableHeight * (1 - PLAY_LINE_POSITION)) / VISIBLE_TIME;
     
     notes.forEach((note) => {
       const noteX = (note.midi - minNote) * keyWidth + 2;
@@ -147,7 +193,6 @@ export function FallingNotesVisualizer({ notes }: Props) {
       const isWaiting = isAtPlayLine && waitingForNote === note.midi;
       const wasPlayed = playedNotes.has(note.midi) && note.time < currentTime;
       
-      // Determine color
       let color = NOTE_COLORS.default;
       if (wasPlayed) {
         color = NOTE_COLORS.played;
@@ -157,11 +202,9 @@ export function FallingNotesVisualizer({ notes }: Props) {
               : NOTE_COLORS.waiting;
       }
       
-      // Glow effect
       ctx.shadowBlur = isWaiting ? 25 : 10;
       ctx.shadowColor = color;
       
-      // Note rectangle with rounded corners
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.roundRect(noteX, noteTopY, noteWidth, noteHeight, 6);
@@ -180,22 +223,19 @@ export function FallingNotesVisualizer({ notes }: Props) {
       ctx.shadowBlur = 0;
     });
 
-    // Draw piano keyboard at bottom
-    drawPianoKeyboard(ctx, width, height, playableHeight, keyWidth, currentPitch?.midi);
-
+    // Draw piano keyboard
+    drawPianoKeyboard(ctx, playableHeight, keyWidth, currentPitch?.midi);
   }, [notes, minNote, noteRange, currentTime, waitingForNote, lastCorrect, currentPitch, playedNotes]);
 
   const drawPianoKeyboard = (
-    ctx: CanvasRenderingContext2D, 
-    _width: number, 
-    _height: number, 
+    ctx: CanvasRenderingContext2D,
     playableHeight: number,
     keyWidth: number,
     detectedNote: number | undefined
   ) => {
     const keyboardY = playableHeight;
     
-    // White keys first
+    // White keys
     for (let i = 0; i < noteRange; i++) {
       const midi = minNote + i;
       if (isBlackKey(midi)) continue;
@@ -204,13 +244,13 @@ export function FallingNotesVisualizer({ notes }: Props) {
       const isActive = detectedNote !== undefined && (detectedNote % 12 === midi % 12);
       
       ctx.fillStyle = isActive ? '#00ff88' : '#f0f0f0';
-      ctx.fillRect(x, keyboardY, keyWidth - 1, pianoHeight);
+      ctx.fillRect(x, keyboardY, keyWidth - 1, PIANO_HEIGHT);
       
       ctx.strokeStyle = '#333';
-      ctx.strokeRect(x, keyboardY, keyWidth - 1, pianoHeight);
+      ctx.strokeRect(x, keyboardY, keyWidth - 1, PIANO_HEIGHT);
     }
     
-    // Black keys on top
+    // Black keys
     for (let i = 0; i < noteRange; i++) {
       const midi = minNote + i;
       if (!isBlackKey(midi)) continue;
@@ -219,10 +259,11 @@ export function FallingNotesVisualizer({ notes }: Props) {
       const isActive = detectedNote !== undefined && (detectedNote % 12 === midi % 12);
       
       ctx.fillStyle = isActive ? '#00ff88' : '#222';
-      ctx.fillRect(x + 2, keyboardY, keyWidth - 4, pianoHeight * 0.65);
+      ctx.fillRect(x + 2, keyboardY, keyWidth - 4, PIANO_HEIGHT * 0.65);
     }
   };
 
+  // Animation loop
   useEffect(() => {
     if (!isPlaying) {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
@@ -273,6 +314,7 @@ export function FallingNotesVisualizer({ notes }: Props) {
     };
   }, [isPlaying, waitingForNote, notes, render, playedNotes]);
 
+  // Canvas resize handler
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -291,10 +333,17 @@ export function FallingNotesVisualizer({ notes }: Props) {
 
   const handlePlay = async () => {
     if (!isListening) await startListening();
+    triggerHaptic('medium');
     setIsPlaying(true);
   };
 
+  const handlePause = () => {
+    triggerHaptic('light');
+    setIsPlaying(false);
+  };
+
   const handleReset = () => {
+    triggerHaptic('medium');
     setIsPlaying(false);
     setCurrentTime(0);
     setWaitingForNote(null);
@@ -302,6 +351,7 @@ export function FallingNotesVisualizer({ notes }: Props) {
     stopListening();
   };
 
+  // Portrait mode - show rotate prompt
   if (!isLandscape) {
     return (
       <div className="landscape-prompt">
@@ -313,37 +363,59 @@ export function FallingNotesVisualizer({ notes }: Props) {
   }
 
   return (
-    <div className="falling-notes-container" ref={containerRef}>
+    <div 
+      className={`falling-notes-container ${isFullscreen ? 'is-fullscreen' : ''}`} 
+      ref={containerRef}
+    >
       <canvas ref={canvasRef} className="falling-notes-canvas" />
       
-      <div className="visualizer-controls">
-        {!isPlaying ? (
-          <button onClick={handlePlay} className="control-btn play">
-            <Play size={18} /> Start
-          </button>
-        ) : (
-          <button onClick={() => setIsPlaying(false)} className="control-btn pause">
-            <Pause size={18} /> Pause
-          </button>
-        )}
-        <button onClick={handleReset} className="control-btn reset">
-          <RotateCcw size={18} />
+      {/* Side panel controls for landscape */}
+      <div className="side-controls">
+        <button 
+          onClick={exitFullscreen} 
+          className="control-btn exit-btn"
+          aria-label="Exit fullscreen"
+        >
+          <Minimize2 size={20} />
         </button>
         
-        <div className="status">
-          {isListening && <Mic size={16} className="mic-indicator" />}
-          {isListening && (
-            <span className="detected-note">
-              {currentPitch ? currentPitch.noteName : '—'}
-            </span>
-          )}
-          {waitingForNote && (
-            <span className="waiting-text">
-              → {notes.find(n => n.midi === waitingForNote)?.name}
-            </span>
-          )}
+        {!isPlaying ? (
+          <button 
+            onClick={handlePlay} 
+            className="control-btn play-btn"
+            aria-label="Play"
+          >
+            <Play size={22} />
+          </button>
+        ) : (
+          <button 
+            onClick={handlePause} 
+            className="control-btn pause-btn"
+            aria-label="Pause"
+          >
+            <Pause size={22} />
+          </button>
+        )}
+        
+        <button 
+          onClick={handleReset} 
+          className="control-btn reset-btn"
+          aria-label="Reset"
+        >
+          <RotateCcw size={20} />
+        </button>
+        
+        <div className={`mic-status ${isListening ? 'active' : ''}`}>
+          <Mic size={18} />
         </div>
       </div>
+
+      {/* Minimal note indicator (landscape) */}
+      {isListening && currentPitch && (
+        <div className="note-indicator">
+          {currentPitch.noteName}
+        </div>
+      )}
     </div>
   );
 }
